@@ -3,8 +3,8 @@
 pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
 import "./libs/IBEP20.sol";
 import "./libs/SafeBEP20.sol";
@@ -17,7 +17,7 @@ import "./libs/ICroxReferral.sol";
 // distributed and the community can show to govern itself.
 //
 // Have fun reading it. Hopefully it's bug-free. God bless.
-contract MasterChef is Ownable, ReentrancyGuard {
+contract MasterChef is OwnableUpgradeable, ReentrancyGuardUpgradeable {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
@@ -70,7 +70,7 @@ contract MasterChef is Ownable, ReentrancyGuard {
     // Info of each user that stakes LP tokens.
     mapping(uint256 => mapping(address => UserInfo)) public userInfo;
     // Total allocation points. Must be the sum of all allocation points in all pools.
-    uint256 public totalAllocPoint = 0;
+    uint256 public totalAllocPoint;
     // The block number when CROXs mining starts.
     uint256 public startBlock;
     // Total locked up rewards
@@ -79,7 +79,7 @@ contract MasterChef is Ownable, ReentrancyGuard {
     // Crox referral contract address.
     ICroxReferral public croxReferral;
     // Referral commission rate in basis points.
-    uint16 public referralCommissionRate = 100;
+    uint16 public referralCommissionRate;
     // Max referral commission rate: 10%.
     uint16 public constant MAXIMUM_REFERRAL_COMMISSION_RATE = 1000;
 
@@ -94,14 +94,14 @@ contract MasterChef is Ownable, ReentrancyGuard {
     );
     event RewardLockedUp(address indexed user, uint256 indexed pid, uint256 amountLockedUp);
 
-    constructor(
+    function initialize(
         address _crox,
         address _devAddress,
         address _feeAddress,
         address _rewardHolder,
         uint256 _startBlock,
         uint256 _croxPerBlock
-    ) public {
+    ) public initializer {
         crox = IBEP20(_crox);
         rewardHolder = _rewardHolder;
         startBlock = _startBlock;
@@ -109,6 +109,12 @@ contract MasterChef is Ownable, ReentrancyGuard {
 
         devAddress = _devAddress;
         feeAddress = _feeAddress;
+
+        totalAllocPoint = 0;
+        referralCommissionRate = 100;
+
+        __Ownable_init();
+        __ReentrancyGuard_init();
     }
 
     function poolLength() external view returns (uint256) {
