@@ -85,6 +85,7 @@ contract MasterChef is OwnableUpgradeable, ReentrancyGuardUpgradeable {
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
+    event Compound(address indexed user, uint256 indexed pid, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event EmissionRateUpdated(address indexed caller, uint256 previousAmount, uint256 newAmount);
     event ReferralCommissionPaid(
@@ -268,6 +269,20 @@ contract MasterChef is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         }
         user.rewardDebt = user.amount.mul(pool.accCroxPerShare).div(1e12);
         emit Withdraw(msg.sender, _pid, _amount);
+    }
+
+    // Compound tokens to Crox pool.
+    function compound(uint256 _pid) public nonReentrant {
+        PoolInfo storage pool = poolInfo[_pid];
+        UserInfo storage user = userInfo[_pid][msg.sender];
+        require(address(pool.lpToken) == address(crox), "compound: not able to compound");
+
+        updatePool(_pid);
+        uint256 pending = user.amount.mul(pool.accCroxPerShare).div(1e12).sub(user.rewardDebt);
+
+        user.amount = user.amount.add(pending);
+        user.rewardDebt = user.amount.mul(pool.accCroxPerShare).div(1e12);
+        emit Compound(msg.sender, _pid, pending);
     }
 
     // Withdraw without caring about rewards. EMERGENCY ONLY.
